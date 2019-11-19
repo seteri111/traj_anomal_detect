@@ -12,18 +12,18 @@ from matplotlib import pyplot as plt
 def gather_line_seg(s, e):
     segs = []
     file_root = 'result/line_seg_files'
-    fn = "AIS_seg_" + s + "_" + e
-    # fn = "TD_seg_"
+    # fn = "AIS_seg_" + s + "_" + e
+    fn = "TD_seg_"
     for root, dir, files in os.walk(file_root):
         for f in files:
             if fn not in f:
                 continue
             file_path = os.path.join(root, f)
-            seg_t = pd.read_csv(file_path, engine='python', index_col='seg_id')
+            seg_t = pd.read_csv(file_path, engine='python')
             segs.append(seg_t)
             print('%s has imported!' % f)
     segs = pd.concat(segs)
-    return segs
+    return segs[['start_x', 'start_y', 'end_x', 'end_y']].values
 
 def identify_par(segs, k, ax):
     """确定DBSCAN最适参数，绘制k_dist变化趋势
@@ -31,8 +31,9 @@ def identify_par(segs, k, ax):
     idx = build_rtree(segs)
     print('R-Tree built!')
     k_dist = get_k_dist(segs, idx, k)
+    bins = np.arange(0, 3, 0.03)
     
-    ax.hist(k_dist, 100, color='b', alpha=0.4)
+    ax.hist(k_dist, bins, color='b', alpha=0.4)
     
 
 def main():

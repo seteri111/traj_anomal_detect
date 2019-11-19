@@ -24,12 +24,11 @@ class Segment(object):
     """
     eps = 1e-12
 
-    def __init__(self, start_point: Point, end_point: Point, traj_id: int = None, cluster_id: int = -1, seg_id: int = -1):
+    def __init__(self, start_point: Point, end_point: Point, traj_id: int = None, cluster_id: int = -1):
         self.start = start_point
         self.end = end_point
         self.traj_id = traj_id
         self.cluster_id = cluster_id
-        self.seg_id = seg_id
 
     def set_cluster(self, cluster_id: int):
         self.cluster_id = cluster_id

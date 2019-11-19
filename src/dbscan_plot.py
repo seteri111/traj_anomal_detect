@@ -62,7 +62,7 @@ def read_cluster():
 def cluster_group(norm_cluster):
     main_tra = representative_trajectory_generation(norm_cluster,
                                                     min_lines=5,
-                                                    min_dist=0.7)
+                                                    min_dist=0.1)
     return main_tra
 
 
@@ -87,7 +87,7 @@ def main():
     plot_tra(ax, main_tra, 'r-', 1.5, 0.7)
 
     # plt.savefig("./line_seg_cluster/T_driver_csv_5_2.png", dpi=400)
-    plt.savefig("result/line_seg_cluster/TD_csv_100_5_04_5_07.png", dpi=600)
+    plt.savefig("result/line_seg_cluster/TD_csv_100_5_04_5_01.png", dpi=600)
     time_end=time.time()
     print('totally cost', time_end - time_start)
     plt.show()

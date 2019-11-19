@@ -24,40 +24,62 @@ import time
 
 min_traj_cluster = 2  # 定义聚类的簇中至少需要的trajectory数量
 
+
+def haus_dist_lineseg(seg0, segs):
+    """计算1条line_segment到一组line_segment的hausdorff距离
+    parameter
+    ---------
+        seg0: nparray([start_x, start_y, end_x, end_y]), 表示一条线段
+        segs: nparray([s_x1, s_y1, e_x1, e_y1], [...], ...)， 表示一组线段
+    return
+    ------
+        dist: list[float], hausdorff距离的数组
+    """
+    start1 = seg0[:2]
+    end1 = seg0[-2:]
+    start2 = segs[..., :2]
+    end2 = segs[..., -2:]
+
+    d11 = np.linalg.norm(start2 - start1, axis=1)
+    d12 = np.linalg.norm(end2 - start1, axis=1)
+    d21 = np.linalg.norm(start2 - end1, axis=1)
+    d22 = np.linalg.norm(end2 - end1, axis=1)
+
+    return np.amax(
+        np.vstack((np.amin(np.vstack((d11, d12)), 0),
+                  np.amin(np.vstack((d21, d22)), 0))), 0)
+
+
+def get_bound(seg):
+    xmin = np.amin(seg[[0, 2]])
+    xmax = np.amax(seg[[0, 2]])
+    ymin = np.amin(seg[[1, 3]])
+    ymax = np.amax(seg[[1, 3]])
+    return xmin, ymin, xmax, ymax
+
+
 def build_rtree(segs):
     """构建segments的rtree索引
     parameter
     ---------
-        segs: List[Segment, ...], 所有的segment集合,构建索引并编号
+        segs: nparray([s_x1, s_y1, e_x1, e_y1], [...], ...)， 表示一组线段
     return
     ------
-
+        idx: 所有line_segment的索引
     """
     idx = index.Index()
 
-    for i, seg in segs.iterrows():
-        if seg.start_x < seg.end_x:
-            xmin = seg.start_x
-            xmax = seg.end_x
-        else:
-            xmax = seg.start_x
-            xmin = seg.end_x
-        if seg.start_y < seg.end_y:
-            ymin = seg.start_y
-            ymax = seg.end_y
-        else:
-            ymax = seg.start_y
-            ymin = seg.end_y
-
-        idx.insert(i, (xmin, ymin, xmax, ymax))
+    for i in range(segs.shape[0]):
+        idx.insert(i, (get_bound(segs[i])))
 
     return idx
+
 
 def get_k_dist(segs, idx, k):
     """计算所有segment的k距离
     parameter 
     ---------
-        segs: List[Segment, ...], 所有的segment集合, 为所有集合的partition分段结果集合
+        segs: nparray([s_x1, s_y1, e_x1, e_y1], [...], ...), 所有的segment集合, 为所有集合的partition分段结果集合
         idx: R-Tree索引， 用于提高临近距离搜索速度
         k: 第k近的线段
     return
@@ -66,29 +88,10 @@ def get_k_dist(segs, idx, k):
     """
     k_dist = []
 
-    for i, seg in segs.iterrows():
-        if seg.start_x < seg.end_x:
-            xmin = seg.start_x
-            xmax = seg.end_x
-        else:
-            xmax = seg.start_x
-            xmin = seg.end_x
-        if seg.start_y < seg.end_y:
-            ymin = seg.start_y
-            ymax = seg.end_y
-        else:
-            ymax = seg.start_y
-            ymin = seg.end_y
-        dist = []
-        
-        seg_p = np.array([(seg.start_x, seg.start_y), (seg.end_x, seg.end_y)])
-        idxs = list(idx.intersection((xmin, ymin, xmax, ymax)))
-        for seg_idx in idxs:
-            segment_tmp = segs.loc[seg_idx]
-            # Calculate distance by hausdorff distance
-            segment_tmp_p = np.array([(segment_tmp.start_x, segment_tmp.start_y),
-                                  (segment_tmp.end_x, segment_tmp.end_y)])
-            dist.append(hausdorff_distance(seg_p, segment_tmp_p))
+    for seg in segs:
+        idxs = list(idx.intersection((get_bound(seg))))
+
+        dist = haus_dist_lineseg(seg, segs[idxs])
         dist.sort()
         if len(dist) >= k:
             k_dist.append(dist[k - 1])
@@ -101,42 +104,35 @@ def neighborhood(seg, segs, idx, epsilon=2.0):
     """计算一个segment在距离epsilon范围内的所有segment集合, 计算的时间复杂度为O(n). n为所有segment的数量
     parameter
     ---------
-        seg: Segment instance, 需要计算的segment对象
-        epsilon: float, segment之间的距离度量阈值
+        seg: nparray([start_x, start_y, end_x, end_y]), 需要计算的segment对象
+        segs: nparray([s_x1, s_y1, e_x1, e_y1], [...], ...)， 所有的segment集合
         idx: R-Tree索引， 用于提高临近距离搜索速度
+        epsilon: float, segment之间的距离度量阈值
     return
     ------
         List[segment, ...], 返回seg在距离epsilon内的所有Segment集合.
     """
     segment_set = []
 
-    if seg.start_x < seg.end_x:
-        xmin = seg.start_x
-        xmax = seg.end_x
-    else:
-        xmax = seg.start_x
-        xmin = seg.end_x
-    if seg.start_y < seg.end_y:
-        ymin = seg.start_y
-        ymax = seg.end_y
-    else:
-        ymax = seg.start_y
-        ymin = seg.end_y
+    xmin, ymin, xmax, ymax = get_bound(seg)
     xmax += epsilon
     xmin -= epsilon
     ymax += epsilon
     ymin -= epsilon
-    
+
     idxs = list(idx.intersection((xmin, ymin, xmax, ymax)))
 
     # Calculate distance by hausdorff distance
-    seg_p = np.array([(seg.start_x, seg.start_y), (seg.end_x, seg.end_y)])
+    dist = haus_dist_lineseg(seg, segs[idxs])
+    segment_set = np.array(idxs)[dist < epsilon]
 
-    for i in idxs:
-        if i == seg.name:
-            continue
+    # seg_p = np.array([(seg.start_x, seg.start_y), (seg.end_x, seg.end_y)])
 
-        segment_tmp = segs.loc[i]
+    # for i in idxs:
+    #     if i == seg.name:
+    #         continue
+
+    #     segment_tmp = segs.loc[i]
 
         # Calculate distance by default
         # seg_long, seg_short = compare(
@@ -146,10 +142,10 @@ def neighborhood(seg, segs, idx, epsilon=2.0):
 
         # Calculate distance by hausdorff distance
         # seg_p = np.array([(seg.start_x, seg.start_y), (seg.end_x, seg.end_y)])
-        segment_tmp_p = np.array([(segment_tmp.start_x, segment_tmp.start_y),
-                                  (segment_tmp.end_x, segment_tmp.end_y)])
-        if hausdorff_distance(seg_p, segment_tmp_p) <= epsilon:
-            segment_set.append(i)
+        # segment_tmp_p = np.array([(segment_tmp.start_x, segment_tmp.start_y),
+        #                           (segment_tmp.end_x, segment_tmp.end_y)])
+        # if hausdorff_distance(seg_p, segment_tmp_p) <= epsilon:
+        #     segment_set.append(i)
 
         # Calculate distance by frechet distance
         # seg_p = [[seg.start.x, seg.start.y], [seg.end.x, seg.end.y]]
@@ -165,15 +161,16 @@ def expand_cluster(segs, idx, queue: deque, cluster_id: int, epsilon: float,
                    min_lines: int):
     while len(queue) != 0:
         curr_id = queue.popleft()
-        curr_seg = segs.loc[curr_id]
-        curr_num_neighborhood = neighborhood(curr_seg, segs, idx, epsilon=epsilon)
+        curr_seg = segs[curr_id]
+        curr_num_neighborhood = neighborhood(curr_seg[:4],
+                                             segs[..., :4],
+                                             idx,
+                                             epsilon=epsilon)
         if len(curr_num_neighborhood) >= min_lines:
-            for m in curr_num_neighborhood:
-                if segs.loc[m, 'cluster_id'] == -1:
-                    queue.append(m)
-                    segs.loc[m, 'cluster_id'] = cluster_id
-        else:
-            pass       
+            m = curr_num_neighborhood[segs[curr_num_neighborhood, 4] == -1]
+            segs[m, 4] = cluster_id
+            for i in m:
+                queue.append(i)
 
 
 def line_segment_clustering(traj_segments,
@@ -192,48 +189,55 @@ def line_segment_clustering(traj_segments,
     cluster_id = 0
     cluster_dict = defaultdict(list)
 
-    idx = build_rtree(traj_segments)
+    segs = traj_segments[[
+        'start_x', 'start_y', 'end_x', 'end_y', 'cluster_id'
+    ]].values
+    idx = build_rtree(segs[..., :4])
     print('R-Tree built!')
 
-    for i in range(traj_segments.shape[0]):
+    for i in range(segs.shape[0]):
         # clu_start = time.time()
-        seg = traj_segments.loc[i]
+        seg = segs[i]
 
         # if i !=2 and i != 455 and i != 1661:
         #     continue      # a test of seg
 
         _queue = deque(list())
-        if seg.cluster_id == -1:
-            seg_num_neighbor_set = neighborhood(seg,
-                                                traj_segments,
+        if seg[4] == -1:
+            seg_num_neighbor_set = neighborhood(seg[:4],
+                                                segs[..., :4],
                                                 idx,
                                                 epsilon=epsilon)
             if len(seg_num_neighbor_set) >= min_lines:
-                traj_segments.loc[i, 'cluster_id'] = cluster_id
-                seg = traj_segments.loc[i]
+                seg[4] = cluster_id
+                segs[seg_num_neighbor_set, 4] = cluster_id
                 for sub_seg in seg_num_neighbor_set:
-                    traj_segments.loc[sub_seg, 'cluster_id'] = cluster_id  # assign clusterId to segment in neighborhood(seg)
+                    # traj_segments.loc[
+                    #     sub_seg,
+                    #     'cluster_id'] = cluster_id  # assign clusterId to segment in neighborhood(seg)
                     _queue.append(sub_seg)  # insert sub segment into queue
 
-                exp_start=time.time()
-                expand_cluster(traj_segments, idx, _queue, cluster_id, epsilon,
+                exp_start = time.time()
+                expand_cluster(segs, idx, _queue, cluster_id, epsilon,
                                min_lines)
                 exp_end = time.time()
                 print('time for extend %d :' % cluster_id, exp_end - exp_start)
-                
+
                 cluster_id += 1
         # clu_end = time.time()
         # print('Calc tra %d :' % seg.traj_id, clu_end - clu_start)
         # print(seg.cluster_id, seg.traj_id)
-        if seg.cluster_id != -1:
-            cluster_dict[seg.cluster_id].append(seg.name)  # 将轨迹放入到聚类的集合中, 按dict进行存放
+        if seg[4] != -1:
+            cluster_dict[seg[4]].append(i)  # 将轨迹放入到聚类的集合中, 按dict进行存放
 
+    traj_segments.cluster_id = segs[..., 4]
     norm_cluster = []
     remove_cluster = dict()
     cluster_number = len(cluster_dict)
     for i in range(0, cluster_number):
-        traj_num = len(set(map(lambda s: traj_segments.loc[s, 'traj_id'],
-                               cluster_dict[i])))  # 计算每个簇下的轨迹数量
+        traj_num = len(
+            set(map(lambda s: traj_segments.loc[s, 'traj_id'],
+                    cluster_dict[i])))  # 计算每个簇下的轨迹数量
         print("the %d cluster lines:" % i, traj_num)
         if traj_num < min_traj_cluster:
             remove_cluster[i] = cluster_dict.pop(i)
