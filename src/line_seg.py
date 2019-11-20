@@ -73,7 +73,6 @@ def get_tra_part_T(df, start, end):
     tra = dict()
     line_seg = dict()
     seg = []
-    l = 0
 
     for idx in df.id.drop_duplicates():
         if idx < start or idx > end:
@@ -96,14 +95,12 @@ def get_tra_part_T(df, start, end):
         seg.append(
             pd.DataFrame([[
                 line_seg[i].start.x, line_seg[i].start.y, line_seg[i].end.x,
-                line_seg[i].end.y, line_seg[i].traj_id, line_seg[i].cluster_id,
-                l + i
+                line_seg[i].end.y, line_seg[i].traj_id, line_seg[i].cluster_id
             ] for i in range(0, len(line_seg))],
                          columns=[
                              'start_x', 'start_y', 'end_x', 'end_y', 'traj_id',
-                             'cluster_id', 'seg_id'
+                             'cluster_id'
                          ]))
-        l += len(line_seg)
         print('Segment of trajectory %s has done' % idx)
     seg = pd.concat(seg)
     return seg
@@ -117,7 +114,6 @@ def get_tra_seg_A(df, end):
 
     line_seg = dict()
     seg = []
-    l = 0
 
     for idx in df.id.drop_duplicates():
         if idx > end:
@@ -133,14 +129,12 @@ def get_tra_seg_A(df, end):
         seg.append(
             pd.DataFrame([[
                 line_seg[i].start.x, line_seg[i].start.y, line_seg[i].end.x,
-                line_seg[i].end.y, line_seg[i].traj_id, line_seg[i].cluster_id,
-                l + i
+                line_seg[i].end.y, line_seg[i].traj_id, line_seg[i].cluster_id
             ] for i in range(0, len(line_seg))],
                          columns=[
                              'start_x', 'start_y', 'end_x', 'end_y', 'traj_id',
-                             'cluster_id', 'seg_id'
+                             'cluster_id'
                          ]))
-        l += len(line_seg)
         print('Segment of trajectory %s has done' % idx)
     seg = pd.concat(seg)
     return seg

@@ -6,6 +6,7 @@
 # output    :
 # --------------------------------------------------------------------------------
 import math
+import numba
 import numpy as np
 import pandas as pd
 from rtree import index
@@ -24,9 +25,9 @@ import time
 
 min_traj_cluster = 2  # 定义聚类的簇中至少需要的trajectory数量
 
-
+# @numba.jit(nopython=True, fastmath=True)
 def haus_dist_lineseg(seg0, segs):
-    """计算1条line_segment到一组line_segment的hausdorff距离
+    """简易版近似hausdorff距离计算函数，特别计算一条线段对多条线段的hausdorff距离，矩阵运算，速度更快，但忽略了部分的垂直距离（会带来误差）
     parameter
     ---------
         seg0: nparray([start_x, start_y, end_x, end_y]), 表示一条线段
@@ -40,14 +41,24 @@ def haus_dist_lineseg(seg0, segs):
     start2 = segs[..., :2]
     end2 = segs[..., -2:]
 
-    d11 = np.linalg.norm(start2 - start1, axis=1)
-    d12 = np.linalg.norm(end2 - start1, axis=1)
-    d21 = np.linalg.norm(start2 - end1, axis=1)
-    d22 = np.linalg.norm(end2 - end1, axis=1)
+    dss = np.linalg.norm(start2 - start1, axis=1)
+    dse = np.linalg.norm(end2 - start1, axis=1)
+    des = np.linalg.norm(start2 - end1, axis=1)
+    dee = np.linalg.norm(end2 - end1, axis=1)
 
     return np.amax(
-        np.vstack((np.amin(np.vstack((d11, d12)), 0),
-                  np.amin(np.vstack((d21, d22)), 0))), 0)
+        np.vstack((np.amin(np.vstack((dss, des)), 0),
+                  np.amin(np.vstack((dse, dee)), 0))), 0)
+
+    # sn = segs.shape[0]
+    # dist = np.zeros(sn)
+    # for i in range(sn):
+    #     dist[i] = (hausdorff_distance(
+    #         np.vstack((start1, end1)),
+    #         np.vstack((start2[i], end2[i]))
+    #     ))
+
+    # return dist
 
 
 def get_bound(seg):

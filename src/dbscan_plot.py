@@ -11,8 +11,6 @@ from trajCluster.cluster import line_segment_clustering, representative_trajecto
 
 import time
 
-time_start=time.time()
-
 def gather_tra():
     tra = dict()
     file_root = 'result/line_seg_files'
@@ -62,7 +60,7 @@ def read_cluster():
 def cluster_group(norm_cluster):
     main_tra = representative_trajectory_generation(norm_cluster,
                                                     min_lines=5,
-                                                    min_dist=0.1)
+                                                    min_dist=0.4)
     return main_tra
 
 
@@ -72,7 +70,35 @@ def plot_tra(ax, tras, color, lw, alpha):
         p_lat = [p.y for p in tra]
         ax.plot(p_long, p_lat, color, lw=lw, alpha=alpha)
 
-def main():
+
+def form_traj(tras):
+    seg = []
+    for idx, traj in tras.items():
+        seg.append(
+            pd.DataFrame(
+                [[
+                    traj[i].x, traj[i].y, traj[i + 1].x, traj[i + 1].y,
+                    int(idx)
+                ] for i in range(len(traj) - 1)],
+                columns=['start_x', 'start_y', 'end_x', 'end_y',
+                         'cluster_id']))
+        print('Cluster %s has formed' % idx)
+    seg = pd.concat(seg)
+    return seg
+
+def write_represent_traj(main_seg, tp):
+    if main_seg.empty:
+        print('error: there is no segment.')
+        return
+
+    file_root = 'result/represent_traj'
+    f = 'main_seg_' + tp + '.txt'
+    file = file_root + os.sep + f
+    main_seg.to_csv(file, mode='w', index=False)
+
+
+def main1():
+    time_start = time.time()
     fig = plt.figure(figsize=(9, 6))
     ax = fig.add_subplot(111)
     tra = gather_tra()
@@ -87,10 +113,28 @@ def main():
     plot_tra(ax, main_tra, 'r-', 1.5, 0.7)
 
     # plt.savefig("./line_seg_cluster/T_driver_csv_5_2.png", dpi=400)
-    plt.savefig("result/line_seg_cluster/TD_csv_100_5_04_5_01.png", dpi=600)
-    time_end=time.time()
+    plt.savefig("result/line_seg_cluster/TD_csv_100_5_04_5_04h(2).png",
+                dpi=600)
+    time_end = time.time()
     print('totally cost', time_end - time_start)
     plt.show()
 
+def main2():
+    # tp = input('Input traj type')
+    tp = 'TD'
+
+    time_start = time.time()
+    norm_cluster, cluster_long, cluster_lat = read_cluster()
+    main_tra = cluster_group(norm_cluster)
+    del norm_cluster, cluster_long, cluster_lat
+    write_represent_traj(form_traj(main_tra), tp)
+
+    time_end = time.time()
+    print('totally cost', time_end - time_start)
+
 if __name__ == "__main__":
-    main()
+    ch = input('Plot or Form?(1/2)')
+    if ch == '1':
+        main1()
+    elif ch == '2':
+        main2()
