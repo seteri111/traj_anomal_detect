@@ -122,8 +122,8 @@ def get_tra_seg_A(df, end):
         t = t.reset_index()
         t.sort_values('BaseDateTime')
         line_seg = [
-            Segment(Point(t.LON[i] * 1, t.LAT[i] * 1),
-                    Point(t.LON[i + 1] * 1, t.LAT[i + 1] * 1), int(idx))
+            Segment(Point(t.LON[i] * 100, t.LAT[i] * 100),
+                    Point(t.LON[i + 1] * 100, t.LAT[i + 1] * 100), int(idx))
             for i in range(0, t.shape[0] - 1)
         ]
         seg.append(
@@ -162,7 +162,7 @@ if __name__ == "__main__":
     # write2fileT(get_tra_part_T(get_T_Drive_data(), start, end), start, end)
 
     # end = sys.maxsize
-    end = 235000000
+    end = 330000000
     df = get_AIS_data()
     write2fileA(get_tra_seg_A(df, end), '1', str(end))
 

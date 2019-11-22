@@ -11,6 +11,7 @@ from trajCluster.cluster import line_segment_clustering, representative_trajecto
 
 import time
 
+
 def gather_tra():
     tra = dict()
     file_root = 'result/line_seg_files'
@@ -36,8 +37,12 @@ def read_cluster():
     norm_cluster = dict()
     cluster_long, cluster_lat = [], []
     file_root = 'result/AIS_cluster'
+    # fn = "AIS"
+    fn = "TD"
     for root, dir, files in os.walk(file_root):
         for f in files:
+            if fn not in f:
+                continue
             file_path = os.path.join(root, f)
             clu_t = pd.read_csv(file_path, engine='python')
             for idx in clu_t.cluster_id.drop_duplicates():
@@ -57,10 +62,11 @@ def read_cluster():
             print('%s has imported!' % f)
     return norm_cluster, cluster_long, cluster_lat
 
+
 def cluster_group(norm_cluster):
     main_tra = representative_trajectory_generation(norm_cluster,
-                                                    min_lines=5,
-                                                    min_dist=0.4)
+                                                    min_lines=50,
+                                                    min_dist=3.5)
     return main_tra
 
 
@@ -85,6 +91,7 @@ def form_traj(tras):
         print('Cluster %s has formed' % idx)
     seg = pd.concat(seg)
     return seg
+
 
 def write_represent_traj(main_seg, tp):
     if main_seg.empty:
@@ -112,12 +119,14 @@ def main1():
     del norm_cluster
     plot_tra(ax, main_tra, 'r-', 1.5, 0.7)
 
-    # plt.savefig("./line_seg_cluster/T_driver_csv_5_2.png", dpi=400)
-    plt.savefig("result/line_seg_cluster/TD_csv_100_5_04_5_04h(2).png",
+    plt.savefig("./line_seg_cluster/T_driver_csv_330_50_3.5_50_3.5.png",
                 dpi=600)
+    # plt.savefig("result/line_seg_cluster/TD_csv_100_5_04_5_04h(2).png",
+    #             dpi=600)
     time_end = time.time()
     print('totally cost', time_end - time_start)
     plt.show()
+
 
 def main2():
     # tp = input('Input traj type')
@@ -131,6 +140,7 @@ def main2():
 
     time_end = time.time()
     print('totally cost', time_end - time_start)
+
 
 if __name__ == "__main__":
     ch = input('Plot or Form?(1/2)')

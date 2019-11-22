@@ -15,17 +15,16 @@ from .segment import compare, Segment
 from .point import Point
 from collections import deque, defaultdict
 
-from hausdorff import hausdorff_distance
+# from hausdorff import hausdorff_distance
 import sys
 sys.path.append("..")
-from discrete_frechet.frechetdist import frdist
-from sklearn.neighbors import KDTree
+# from discrete_frechet.frechetdist import frdist
 
 import time
 
 min_traj_cluster = 2  # 定义聚类的簇中至少需要的trajectory数量
 
-# @numba.jit(nopython=True, fastmath=True)
+@numba.jit(nopython=True, fastmath=True)
 def haus_dist_lineseg(seg0, segs):
     """简易版近似hausdorff距离计算函数，特别计算一条线段对多条线段的hausdorff距离，矩阵运算，速度更快，但忽略了部分的垂直距离（会带来误差）
     parameter
@@ -41,14 +40,15 @@ def haus_dist_lineseg(seg0, segs):
     start2 = segs[..., :2]
     end2 = segs[..., -2:]
 
-    dss = np.linalg.norm(start2 - start1, axis=1)
-    dse = np.linalg.norm(end2 - start1, axis=1)
-    des = np.linalg.norm(start2 - end1, axis=1)
-    dee = np.linalg.norm(end2 - end1, axis=1)
+    dss = np.sqrt(np.sum((start2 - start1)**2, axis=1))
+    dse = np.sqrt(np.sum((end2 - start1)**2, axis=1))
+    des = np.sqrt(np.sum((start2 - end1)**2, axis=1))
+    dee = np.sqrt(np.sum((end2 - end1) ** 2, axis=1))
+    
+    d1 = np.where((dss < des), dss, des)
+    d2 = np.where((dse < dee), dse, dee)
 
-    return np.amax(
-        np.vstack((np.amin(np.vstack((dss, des)), 0),
-                  np.amin(np.vstack((dse, dee)), 0))), 0)
+    return np.where((d1 > d2), d1, d2)
 
     # sn = segs.shape[0]
     # dist = np.zeros(sn)
@@ -60,12 +60,12 @@ def haus_dist_lineseg(seg0, segs):
 
     # return dist
 
-
+@numba.jit(nopython=True, fastmath=True)
 def get_bound(seg):
-    xmin = np.amin(seg[[0, 2]])
-    xmax = np.amax(seg[[0, 2]])
-    ymin = np.amin(seg[[1, 3]])
-    ymax = np.amax(seg[[1, 3]])
+    xmin = min(seg[0], seg[2])
+    xmax = max(seg[0], seg[2])
+    ymin = min(seg[1], seg[3])
+    ymax = max(seg[1], seg[3])
     return xmin, ymin, xmax, ymax
 
 
@@ -123,8 +123,6 @@ def neighborhood(seg, segs, idx, epsilon=2.0):
     ------
         List[segment, ...], 返回seg在距离epsilon内的所有Segment集合.
     """
-    segment_set = []
-
     xmin, ymin, xmax, ymax = get_bound(seg)
     xmax += epsilon
     xmin -= epsilon

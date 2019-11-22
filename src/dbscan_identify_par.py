@@ -1,4 +1,5 @@
 import os
+import sys
 
 import numpy as np
 import pandas as pd
@@ -12,8 +13,8 @@ from matplotlib import pyplot as plt
 def gather_line_seg(s, e):
     segs = []
     file_root = 'result/line_seg_files'
-    # fn = "AIS_seg_" + s + "_" + e
-    fn = "TD_seg_"
+    fn = "AIS_seg_" + s + "_" + e
+    # fn = "TD_seg_"
     for root, dir, files in os.walk(file_root):
         for f in files:
             if fn not in f:
@@ -31,7 +32,7 @@ def identify_par(segs, k, ax):
     idx = build_rtree(segs)
     print('R-Tree built!')
     k_dist = get_k_dist(segs, idx, k)
-    bins = np.arange(0, 3, 0.03)
+    bins = np.arange(0, 10, 0.1)
     
     ax.hist(k_dist, bins, color='b', alpha=0.4)
     
@@ -43,7 +44,7 @@ def main():
     fig = plt.figure(figsize=(9, 6))
     ax = fig.add_subplot(111)
 
-    segs = gather_line_seg('1', '235000000')
+    segs = gather_line_seg('1', str(300000000))
     identify_par(segs, k, ax)
 
     plt.xlabel('k_dist')
