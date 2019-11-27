@@ -32,8 +32,8 @@ def seg_DBSCAN(seg):
     Do DBSCAN clustering for all line segments.
     """
     norm_cluster, remove_cluster = line_segment_clustering(seg,
-                                                           min_lines=50,
-                                                           epsilon=3.5)
+                                                           min_lines=15,
+                                                           epsilon=1.4)
     return norm_cluster
 
 def write_cluster(clu):

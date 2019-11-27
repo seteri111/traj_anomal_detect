@@ -65,8 +65,8 @@ def read_cluster():
 
 def cluster_group(norm_cluster):
     main_tra = representative_trajectory_generation(norm_cluster,
-                                                    min_lines=50,
-                                                    min_dist=3.5)
+                                                    min_lines=15,
+                                                    min_dist=1.4)
     return main_tra
 
 
@@ -119,7 +119,7 @@ def main1():
     del norm_cluster
     plot_tra(ax, main_tra, 'r-', 1.5, 0.7)
 
-    plt.savefig("./line_seg_cluster/T_driver_csv_330_50_3.5_50_3.5.png",
+    plt.savefig("./line_seg_cluster/T_driver_csv_330_15_1.4_15_1.4.png",
                 dpi=600)
     # plt.savefig("result/line_seg_cluster/TD_csv_100_5_04_5_04h(2).png",
     #             dpi=600)
