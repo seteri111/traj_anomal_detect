@@ -15,11 +15,12 @@ import time
 def gather_tra():
     tra = dict()
     file_root = 'result/line_seg_files'
-    # fn = "AIS_seg_"
-    fn = "TD_seg_"
+    fn1 = "AIS_seg"
+    fn2 = "922"
+    # fn = "TD_seg_"
     for root, dir, files in os.walk(file_root):
         for f in files:
-            if fn not in f:
+            if fn1 not in f or fn2 not in f:
                 continue
             file_path = os.path.join(root, f)
             seg_t = pd.read_csv(file_path, engine='python')
@@ -37,8 +38,8 @@ def read_cluster():
     norm_cluster = dict()
     cluster_long, cluster_lat = [], []
     file_root = 'result/AIS_cluster'
-    # fn = "AIS"
-    fn = "TD"
+    fn = "AIS_922"
+    # fn = "TD"
     for root, dir, files in os.walk(file_root):
         for f in files:
             if fn not in f:
@@ -65,8 +66,8 @@ def read_cluster():
 
 def cluster_group(norm_cluster):
     main_tra = representative_trajectory_generation(norm_cluster,
-                                                    min_lines=15,
-                                                    min_dist=1.4)
+                                                    min_lines=10,
+                                                    min_dist=2)
     return main_tra
 
 
@@ -119,7 +120,7 @@ def main1():
     del norm_cluster
     plot_tra(ax, main_tra, 'r-', 1.5, 0.7)
 
-    plt.savefig("./line_seg_cluster/T_driver_csv_330_15_1.4_15_1.4.png",
+    plt.savefig("result/line_seg_cluster/AIS_1_922_15_1.4_10_2.png",
                 dpi=600)
     # plt.savefig("result/line_seg_cluster/TD_csv_100_5_04_5_04h(2).png",
     #             dpi=600)

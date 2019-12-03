@@ -61,7 +61,7 @@ def get_AIS_partition():
         except:
             print('error at: ' + f)
     df = pd.concat(large_df)
-    return df.sort_values('id'), s, e
+    return df, s, e
 
 
 def get_tra_part_T(df, start, end):
@@ -119,8 +119,8 @@ def get_tra_seg_A(df, end):
         if idx > end:
             continue
         t = df[df.id == idx]
+        t = t.sort_values('BaseDateTime')
         t = t.reset_index()
-        t.sort_values('BaseDateTime')
         line_seg = [
             Segment(Point(t.LON[i] * 100, t.LAT[i] * 100),
                     Point(t.LON[i + 1] * 100, t.LAT[i + 1] * 100), int(idx))
@@ -161,8 +161,8 @@ if __name__ == "__main__":
 
     # write2fileT(get_tra_part_T(get_T_Drive_data(), start, end), start, end)
 
-    # end = sys.maxsize
-    end = 330000000
+    end = sys.maxsize
+    # end = 300000000
     df = get_AIS_data()
     write2fileA(get_tra_seg_A(df, end), '1', str(end))
 

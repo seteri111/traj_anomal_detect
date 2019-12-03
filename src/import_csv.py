@@ -39,7 +39,6 @@ def time_resample(df):
     df = df.sort_values('BaseDateTime')
     df = df.drop_duplicates(subset='BaseDateTime', keep='first')
     df = df.reset_index()
-
     n = 0
     for i in range(df.shape[0] - 1):
         timedelta = df.loc[i + 1, 'BaseDateTime'] - df.loc[n, 'BaseDateTime']
@@ -53,6 +52,7 @@ def time_resample(df):
 
 def pre_process(df):
     df = remove_stationary_points(df)
+    df = df.dropna(how='any', axis=0)
     df_a = pd.DataFrame()
 
     for idx in df['id'].drop_duplicates():

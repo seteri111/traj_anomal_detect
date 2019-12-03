@@ -13,7 +13,7 @@ import time
 def gather_line_seg():
     seg = []
     file_root = 'result/line_seg_files'
-    fn = "AIS_seg_1_330"
+    fn = "AIS_seg_1_922"
     # fn = "TD_seg_"
     for root, dir, files in os.walk(file_root):
         for f in files:
@@ -44,7 +44,7 @@ def write_cluster(clu):
         print('error: there is no cluster.')
         return
     file_root = 'result/AIS_cluster'
-    f = 'Cluster_AIS_330.txt'
+    f = 'Cluster_AIS_922.txt'
     # f = 'Cluster_TD.txt'
     file = file_root + os.sep + f
     clu.to_csv(file, mode='w', index=False)
